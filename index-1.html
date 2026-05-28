@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MoodQuote — Words for Every State of Mind</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Mono:wght@300;400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #12121a;
+    --border: rgba(255,255,255,0.07);
+    --text: #e8e4dc;
+    --muted: rgba(232, 228, 220, 0.4);
+    --accent: #c8a96e;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Cormorant Garamond', serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 60px 20px 80px;
+    overflow-x: hidden;
+  }
+
+  /* Ambient glow */
+  body::before {
+    content: '';
+    position: fixed;
+    top: -200px; left: 50%;
+    transform: translateX(-50%);
+    width: 600px; height: 600px;
+    border-radius: 50%;
+    background: radial-gradient(circle, var(--glow, rgba(200,169,110,0.07)) 0%, transparent 70%);
+    pointer-events: none;
+    transition: background 1.2s ease;
+    z-index: 0;
+  }
+
+  header {
+    text-align: center;
+    margin-bottom: 56px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .logo {
+    font-size: 11px;
+    font-family: 'DM Mono', monospace;
+    letter-spacing: 0.35em;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 12px;
+    opacity: 0.8;
+  }
+
+  h1 {
+    font-size: clamp(2.4rem, 5vw, 3.6rem);
+    font-weight: 300;
+    letter-spacing: -0.01em;
+    line-height: 1.1;
+    color: var(--text);
+  }
+
+  h1 em {
+    font-style: italic;
+    color: var(--accent);
+  }
+
+  .subtitle {
+    margin-top: 14px;
+    font-size: 1.1rem;
+    font-weight: 300;
+    color: var(--muted);
+    font-style: italic;
+  }
+
+  /* Mood Grid */
+  .mood-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.3em;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 20px;
+    text-align: center;
+    position: relative;
+    z-index: 1;
+  }
+
+  .mood-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    width: 100%;
+    max-width: 680px;
+    position: relative;
+    z-index: 1;
+    margin-bottom: 52px;
+  }
+
+  @media (max-width: 540px) {
+    .mood-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+
+  .mood-btn {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 16px 10px;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .mood-btn::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--mood-color, transparent);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+
+  .mood-btn:hover::before,
+  .mood-btn.active::before { opacity: 0.08; }
+
+  .mood-btn:hover,
+  .mood-btn.active {
+    border-color: var(--mood-color, var(--accent));
+    transform: translateY(-2px);
+    box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+  }
+
+  .mood-btn.active {
+    box-shadow: 0 0 0 1px var(--mood-color), 0 8px 30px rgba(0,0,0,0.5);
+  }
+
+  .mood-icon {
+    font-size: 1.6rem;
+    position: relative;
+    z-index: 1;
+  }
+
+  .mood-name {
+    font-family: 'DM Mono', monospace;
+    font-size: 9.5px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--muted);
+    position: relative;
+    z-index: 1;
+    transition: color 0.3s;
+  }
+
+  .mood-btn:hover .mood-name,
+  .mood-btn.active .mood-name {
+    color: var(--mood-color, var(--accent));
+  }
+
+  /* Quote Card */
+  .quote-stage {
+    width: 100%;
+    max-width: 680px;
+    position: relative;
+    z-index: 1;
+    min-height: 260px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .quote-card {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 52px 56px;
+    position: relative;
+    display: none;
+    flex-direction: column;
+    gap: 28px;
+  }
+
+  .quote-card.visible { display: flex; }
+  .quote-card.fade-in { animation: fadeUp 0.6s cubic-bezier(0.16,1,0.3,1) both; }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .quote-mark {
+    font-size: 5rem;
+    line-height: 0.6;
+    font-style: italic;
+    color: var(--card-accent, var(--accent));
+    opacity: 0.3;
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 300;
+    user-select: none;
+  }
+
+  .quote-text {
+    font-size: clamp(1.3rem, 3vw, 1.72rem);
+    font-weight: 300;
+    line-height: 1.65;
+    font-style: italic;
+    color: var(--text);
+    letter-spacing: 0.01em;
+  }
+
+  .quote-author {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .quote-author::before {
+    content: '';
+    display: block;
+    width: 32px;
+    height: 1px;
+    background: var(--card-accent, var(--accent));
+    opacity: 0.5;
+  }
+
+  .author-name {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .quote-mood-tag {
+    position: absolute;
+    top: 20px; right: 24px;
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--card-accent, var(--accent));
+    opacity: 0.5;
+  }
+
+  /* Bottom row */
+  .action-row {
+    margin-top: 24px;
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .btn {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    padding: 12px 28px;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    border: 1px solid var(--border);
+  }
+
+  .btn-primary {
+    background: var(--card-accent, var(--accent));
+    color: #0a0a0f;
+    border-color: transparent;
+  }
+
+  .btn-primary:hover {
+    filter: brightness(1.15);
+    transform: translateY(-1px);
+  }
+
+  .btn-ghost {
+    background: transparent;
+    color: var(--muted);
+  }
+
+  .btn-ghost:hover {
+    color: var(--text);
+    border-color: rgba(255,255,255,0.2);
+  }
+
+  /* Placeholder */
+  .placeholder {
+    text-align: center;
+    padding: 60px 0;
+  }
+
+  .placeholder-icon { font-size: 2.8rem; margin-bottom: 16px; opacity: 0.3; }
+
+  .placeholder-text {
+    font-style: italic;
+    color: var(--muted);
+    font-size: 1.1rem;
+  }
+
+  /* Copy toast */
+  .toast {
+    position: fixed;
+    bottom: 32px; left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 12px 24px;
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--accent);
+    opacity: 0;
+    transition: all 0.3s ease;
+    pointer-events: none;
+    z-index: 100;
+  }
+
+  .toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">MoodQuote</div>
+  <h1>Words for Every<br><em>State of Mind</em></h1>
+  <p class="subtitle">Select your mood — receive wisdom.</p>
+</header>
+
+<div class="mood-label">How are you feeling?</div>
+
+<div class="mood-grid" id="moodGrid"></div>
+
+<div class="quote-stage">
+  <div class="quote-card" id="quoteCard">
+    <span class="quote-mood-tag" id="quoteMoodTag"></span>
+    <div class="quote-mark">"</div>
+    <p class="quote-text" id="quoteText"></p>
+    <div class="quote-author">
+      <span class="author-name" id="quoteAuthor"></span>
+    </div>
+  </div>
+
+  <div class="placeholder" id="placeholder">
+    <div class="placeholder-icon">✦</div>
+    <p class="placeholder-text">Choose a mood above to receive your quote</p>
+  </div>
+</div>
+
+<div class="action-row" id="actionRow" style="display:none">
+  <button class="btn btn-primary" onclick="generateQuote()">New Quote</button>
+  <button class="btn btn-ghost" onclick="copyQuote()">Copy</button>
+</div>
+
+<div class="toast" id="toast">Copied to clipboard</div>
+
+<script>
+const moods = [
+  { id: 'inspired',  name: 'Inspired',  icon: '✦',  color: '#c8a96e', glow: 'rgba(200,169,110,0.12)' },
+  { id: 'anxious',   name: 'Anxious',   icon: '◎',  color: '#7e9fb5', glow: 'rgba(126,159,181,0.12)' },
+  { id: 'melancholy',name: 'Melancholy',icon: '◑',  color: '#9b8fbf', glow: 'rgba(155,143,191,0.12)' },
+  { id: 'joyful',    name: 'Joyful',    icon: '◉',  color: '#e8a87c', glow: 'rgba(232,168,124,0.12)' },
+  { id: 'determined',name: 'Determined',icon: '▲',  color: '#e06c6c', glow: 'rgba(224,108,108,0.12)' },
+  { id: 'reflective',name: 'Reflective',icon: '◐',  color: '#6ca9a9', glow: 'rgba(108,169,169,0.12)' },
+  { id: 'restless',  name: 'Restless',  icon: '⟳',  color: '#b8c46e', glow: 'rgba(184,196,110,0.12)' },
+  { id: 'grateful',  name: 'Grateful',  icon: '❋',  color: '#d98fb0', glow: 'rgba(217,143,176,0.12)' },
+];
+
+const quoteDB = {
+  inspired: [
+    { text: "The only way to do great work is to love what you do. If you haven't found it yet, keep looking.", author: "Steve Jobs" },
+    { text: "Creativity is intelligence having fun.", author: "Albert Einstein" },
+    { text: "You are never too old to set another goal or to dream a new dream.", author: "C.S. Lewis" },
+    { text: "The future belongs to those who believe in the beauty of their dreams.", author: "Eleanor Roosevelt" },
+    { text: "Everything you can imagine is real.", author: "Pablo Picasso" },
+    { text: "It always seems impossible until it's done.", author: "Nelson Mandela" },
+  ],
+  anxious: [
+    { text: "You don't have to control your thoughts. You just have to stop letting them control you.", author: "Dan Millman" },
+    { text: "Almost everything will work again if you unplug it for a few minutes — including you.", author: "Anne Lamott" },
+    { text: "Nothing diminishes anxiety faster than action.", author: "Walter Anderson" },
+    { text: "Worrying is like paying a debt you don't owe.", author: "Mark Twain" },
+    { text: "The present moment is the only moment available to us, and it is the door to all moments.", author: "Thich Nhat Hanh" },
+    { text: "Anxiety is a thin stream of fear trickling through the mind. If encouraged, it cuts a channel into which all other thoughts are drained.", author: "Arthur Somers Roche" },
+  ],
+  melancholy: [
+    { text: "Even the darkest night will end and the sun will rise.", author: "Victor Hugo" },
+    { text: "Sadness is but a wall between two gardens.", author: "Kahlil Gibran" },
+    { text: "There is no despair so absolute as that which comes with the first moments of our first great sorrow.", author: "George Eliot" },
+    { text: "The soul would have no rainbow had the eyes no tears.", author: "John Vance Cheney" },
+    { text: "The sun doesn't abandon the sky just because a storm is coming.", author: "Atticus" },
+    { text: "We must be willing to let go of the life we planned so as to have the life that is waiting for us.", author: "Joseph Campbell" },
+  ],
+  joyful: [
+    { text: "Joy is not in things; it is in us.", author: "Richard Wagner" },
+    { text: "Find ecstasy in life; the mere sense of living is joy enough.", author: "Emily Dickinson" },
+    { text: "The most wasted of all days is one without laughter.", author: "E.E. Cummings" },
+    { text: "Happiness is not something ready-made. It comes from your own actions.", author: "Dalai Lama" },
+    { text: "Joy is the simplest form of gratitude.", author: "Karl Barth" },
+    { text: "Life is short and we have never too much time for gladdening the hearts of those who are travelling the dark journey with us.", author: "Henri-Frédéric Amiel" },
+  ],
+  determined: [
+    { text: "I am not afraid of storms, for I am learning how to sail my ship.", author: "Louisa May Alcott" },
+    { text: "The difference between a successful person and others is not a lack of strength, but a lack of will.", author: "Vince Lombardi" },
+    { text: "Strength does not come from physical capacity. It comes from an indomitable will.", author: "Mahatma Gandhi" },
+    { text: "Fall seven times, stand up eight.", author: "Japanese Proverb" },
+    { text: "Our greatest glory is not in never falling, but in rising every time we fall.", author: "Confucius" },
+    { text: "The will to win, the desire to succeed, the urge to reach your full potential — these are the keys that will unlock the door to personal excellence.", author: "Confucius" },
+  ],
+  reflective: [
+    { text: "An unexamined life is not worth living.", author: "Socrates" },
+    { text: "We do not learn from experience. We learn from reflecting on experience.", author: "John Dewey" },
+    { text: "Turn your wounds into wisdom.", author: "Oprah Winfrey" },
+    { text: "Knowing yourself is the beginning of all wisdom.", author: "Aristotle" },
+    { text: "Life can only be understood backwards; but it must be lived forwards.", author: "Søren Kierkegaard" },
+    { text: "The unexamined life is not worth living; the over-examined life is not lived.", author: "Tim Fargo" },
+  ],
+  restless: [
+    { text: "Not all those who wander are lost.", author: "J.R.R. Tolkien" },
+    { text: "I am restless. I am athirst for faraway things.", author: "Rabindranath Tagore" },
+    { text: "The world is a book, and those who do not travel read only one page.", author: "Saint Augustine" },
+    { text: "Man cannot discover new oceans unless he has the courage to lose sight of the shore.", author: "André Gide" },
+    { text: "Restlessness is discontent, and discontent is the first necessity of progress.", author: "Thomas Edison" },
+    { text: "A good traveler has no fixed plans and is not intent on arriving.", author: "Lao Tzu" },
+  ],
+  grateful: [
+    { text: "Gratitude turns what we have into enough.", author: "Anonymous" },
+    { text: "The thankful heart opens our eyes to a multitude of blessings that continually surround us.", author: "James E. Faust" },
+    { text: "Gratitude is the fairest blossom which springs from the soul.", author: "Henry Ward Beecher" },
+    { text: "Enough is a feast.", author: "Buddhist Proverb" },
+    { text: "If the only prayer you ever say in your entire life is 'thank you', it will be enough.", author: "Meister Eckhart" },
+    { text: "Gratitude can transform common days into thanksgivings, turn routine jobs into joy, and change ordinary opportunities into blessings.", author: "William Arthur Ward" },
+  ],
+};
+
+let currentMood = null;
+let currentQuote = null;
+
+// Build mood grid
+const grid = document.getElementById('moodGrid');
+moods.forEach(mood => {
+  const btn = document.createElement('button');
+  btn.className = 'mood-btn';
+  btn.id = `mood-${mood.id}`;
+  btn.style.setProperty('--mood-color', mood.color);
+  btn.innerHTML = `<span class="mood-icon">${mood.icon}</span><span class="mood-name">${mood.name}</span>`;
+  btn.addEventListener('click', () => selectMood(mood));
+  grid.appendChild(btn);
+});
+
+function selectMood(mood) {
+  // Update active state
+  document.querySelectorAll('.mood-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(`mood-${mood.id}`).classList.add('active');
+  currentMood = mood;
+
+  // Update ambient glow
+  document.body.style.setProperty('--glow', mood.glow);
+
+  // Generate quote
+  generateQuote();
+}
+
+function generateQuote() {
+  if (!currentMood) return;
+
+  const quotes = quoteDB[currentMood.id];
+  let quote;
+  do {
+    quote = quotes[Math.floor(Math.random() * quotes.length)];
+  } while (quote === currentQuote && quotes.length > 1);
+  currentQuote = quote;
+
+  const card = document.getElementById('quoteCard');
+  const placeholder = document.getElementById('placeholder');
+  const actionRow = document.getElementById('actionRow');
+
+  // Set content
+  document.getElementById('quoteText').textContent = quote.text;
+  document.getElementById('quoteAuthor').textContent = quote.author;
+  document.getElementById('quoteMoodTag').textContent = currentMood.name;
+
+  // Update card accent color
+  card.style.setProperty('--card-accent', currentMood.color);
+  card.style.borderColor = `${currentMood.color}22`;
+
+  // Animate
+  card.classList.remove('fade-in', 'visible');
+  placeholder.style.display = 'none';
+  actionRow.style.display = 'flex';
+
+  requestAnimationFrame(() => {
+    card.classList.add('visible', 'fade-in');
+  });
+}
+
+function copyQuote() {
+  if (!currentQuote) return;
+  const text = `"${currentQuote.text}" — ${currentQuote.author}`;
+  navigator.clipboard.writeText(text).then(() => {
+    const toast = document.getElementById('toast');
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 2200);
+  });
+}
+</script>
+</body>
+</html>
